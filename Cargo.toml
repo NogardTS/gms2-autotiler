@@ -1,6 +1,6 @@
 [package]
 name = "autotiler_32px"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Giuliano"]
 edition = "2018"
 
@@ -10,7 +10,8 @@ edition = "2018"
 chrono = "*"
 lazy_static = "*"
 serde = { version = "*", features = [ "derive" ] }
-serde_json = "*"
+serde_jsonrc = "*"
 serde_with = "*"
 uuid = { version = "*", features = [ "serde", "v4"] }
 tinyfiledialogs = "*"
+anyhow = "*"

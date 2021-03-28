@@ -2,19 +2,29 @@ use crate::modules::constants::*;
 use crate::modules::structs::*;
 
 use std::collections::HashMap;
-use std::error::Error;
 
-pub fn add_tileset_to_room<'a>(room: &'a mut Room, tileset: &'a Tileset, block: &'a Object) -> Result<&'a mut Room, Box<dyn Error>> {
-    let blocks: Vec<Instance> = room.layers.iter().cloned().map(|layer| {
-        let layer_blocks: Vec<Instance> = layer.instances.iter().cloned().filter(|instance| instance.obj_id == block.id).collect();
-        layer_blocks
-    }).flatten().collect();
+pub fn add_tileset_to_room<'a>(room: &'a mut Room, tileset_id: &'a TilesetId, block_name: &str) -> anyhow::Result<&'a mut Room> {
+    let blocks: Vec<Instance> = room.layers.iter()
+        .cloned()
+        .filter(|layer| layer.instances.is_some())
+        .map(|layer| {
+            let layer_blocks: Vec<Instance> = layer.instances
+                .clone()
+                .unwrap()
+                .iter()
+                .cloned()
+                .filter(|instance| instance.object_id.name == block_name).collect();
+            layer_blocks
+        })
+        .flatten()
+        .collect();
     let mut block_offsets = HashMap::new();
     for block in blocks.into_iter() {
         let offset = (block.x as i64 % 32, block.y as i64 % 32);
         let these_blocks = block_offsets.entry(offset).or_insert(Vec::new());
         these_blocks.push(block);
     }
+    let mut new_layer_depth = -9971212;
     for (offset, blocks) in block_offsets.iter() {
         let mut grid = vec![vec![false; room.room_settings.width as usize / 32]; room.room_settings.height as usize / 32];
         for block in blocks.iter() {
@@ -35,16 +45,16 @@ pub fn add_tileset_to_room<'a>(room: &'a mut Room, tileset: &'a Tileset, block: 
             }
         }
         let mut new_layer = DEFAULT_LAYER.clone();
-        new_layer.id = uuid::Uuid::new_v4().to_string();
-        new_layer.name = format!("Nogard tiles {}_{}", offset.0, offset.1);
+        new_layer.name = Some(format!("Nogard tiles {}_{}", offset.0, offset.1));
         new_layer.tiles.as_mut().unwrap().serialise_height = canvas.len() as i64;
         new_layer.tiles.as_mut().unwrap().serialise_width = canvas[0].len() as i64;
         new_layer.tiles.as_mut().unwrap().tile_serialise_data = canvas.into_iter().flatten().collect();
-        new_layer.tileset_id = Some(tileset.id.clone());
-        new_layer.depth = -9971212; //TODO
+        new_layer.tileset_id = Some(tileset_id.clone());
+        new_layer.depth = Some(new_layer_depth); //TODO
         new_layer.x = Some(offset.0);
         new_layer.y = Some(offset.1);
         room.layers.push_front(new_layer);
+        new_layer_depth -= 1;
     }
     Ok(room)
 }
